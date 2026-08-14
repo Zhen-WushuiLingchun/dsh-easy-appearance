@@ -1,0 +1,58 @@
+name: Verify tested snapshot
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out appearance repository
+        uses: actions/checkout@v4
+
+      - name: Verify recorded package tree
+        shell: pwsh
+        run: ./scripts/verify-tested-snapshot.ps1
+
+      - name: Syntax-check historical dynamic prototype
+        shell: pwsh
+        run: node -e "const fs=require('fs'); new Function(fs.readFileSync('legacy-prototype/prototype.client.js','utf8')); new Function(fs.readFileSync('legacy-prototype/host.js','utf8'));"
+
+      - name: Check out matching DeepSeek Harness revision
+        uses: actions/checkout@v4
+        with:
+          repository: deepseek-ai/deepseek-harness
+          ref: 47f943859bef60e4160492346772ded9b24f765a
+          path: integration-fixture
+
+      - name: Install snapshot into clean Harness tree
+        shell: pwsh
+        run: ./scripts/install-into-dsh.ps1 -HarnessPath ./integration-fixture
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+          run_install: false
+
+      - name: Install Harness dependencies
+        working-directory: integration-fixture
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Run focused persistence and appearance tests
+        working-directory: integration-fixture
+        run: pnpm exec vitest run packages/client/ui-appearance/tests packages/host/apiproxy/tests/api-proxy-config.spec.ts
+
+      - name: Build appearance package
+        working-directory: integration-fixture
+        run: pnpm --filter @deepseek-ai/dsh-client-ui-appearance bundle

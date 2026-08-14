@@ -1,0 +1,99 @@
+diff --git a/packages/bundle/web-app/cordis.patch.yml b/packages/bundle/web-app/cordis.patch.yml
+index b06e63b54f..3241d760d5 100644
+--- a/packages/bundle/web-app/cordis.patch.yml
++++ b/packages/bundle/web-app/cordis.patch.yml
+@@ -189,6 +189,9 @@
+     - id: ui-settings-general
+       name: '@deepseek-ai/dsh-client-ui-settings-general'
+ 
++    - id: ui-appearance
++      name: '@deepseek-ai/dsh-client-ui-appearance'
++
+     - id: ui-settings-models
+       name: '@deepseek-ai/dsh-client-ui-settings-models'
+ 
+diff --git a/packages/bundle/web-app/package.json b/packages/bundle/web-app/package.json
+index ca4709a2a9..af1134f7bb 100644
+--- a/packages/bundle/web-app/package.json
++++ b/packages/bundle/web-app/package.json
+@@ -53,6 +53,7 @@
+     "@deepseek-ai/dsh-client-modules": "workspace:^",
+     "@deepseek-ai/dsh-client-runtime": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-agent-preset": "workspace:^",
++    "@deepseek-ai/dsh-client-ui-appearance": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-commands": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-conversation": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-cordis": "workspace:^",
+diff --git a/packages/host/apiproxy/src/api-proxy.ts b/packages/host/apiproxy/src/api-proxy.ts
+index bda99362b6..288f15812f 100644
+--- a/packages/host/apiproxy/src/api-proxy.ts
++++ b/packages/host/apiproxy/src/api-proxy.ts
+@@ -124,7 +124,7 @@ const DEFAULT_MAX_MESSAGES = 50
+  * is deferred work.
+  */
+ const WEB_SETTINGS_NAMESPACES = [
+-  'agent-loop', 'shell', 'locale', 'permission', 'ui-conversation', 'ui-theme', 'web-search-deepseek',
++  'agent-loop', 'shell', 'locale', 'permission', 'ui-appearance', 'ui-conversation', 'ui-theme', 'web-search-deepseek',
+ ] as const
+ 
+ /** Provider work budget: at most 100 calls and 2,000 inspected hits. */
+diff --git a/packages/host/apiproxy/tests/api-proxy-config.spec.ts b/packages/host/apiproxy/tests/api-proxy-config.spec.ts
+index d4ba7b374b..812f0c4712 100644
+--- a/packages/host/apiproxy/tests/api-proxy-config.spec.ts
++++ b/packages/host/apiproxy/tests/api-proxy-config.spec.ts
+@@ -414,10 +414,11 @@ describe('settings domain', () => {
+     ctx.settings.register(settingsNamespace('ui-theme'), z.object({
+       preference: z.union(['light', 'dark', 'system']).default('system'),
+     }))
++    ctx.settings.register(settingsNamespace('ui-appearance'), z.object({ config: z.string().default('') }))
+     const api = createApiProxy(ctx, DEFAULTS)
+     expect(expectOk(await api.settings.describe(request({}))).namespaces.map(view => view.ns))
+-      .toEqual(['ui-onboarding', 'ui-theme'])
+-    const frames = await collectHost(api, ['host/remote-event'], 2, async () => {
++      .toEqual(['ui-onboarding', 'ui-theme', 'ui-appearance'])
++    const frames = await collectHost(api, ['host/remote-event'], 3, async () => {
+       expectOk(await api.settings.mutate(request({
+         ns: 'ui-onboarding',
+         ops: [{ op: 'set', path: ['welcomeNoticeVersion'], value: 'v1' }],
+@@ -426,8 +427,16 @@ describe('settings domain', () => {
+         ns: 'ui-theme',
+         ops: [{ op: 'set', path: ['preference'], value: 'dark' }],
+       })))
++      expectOk(await api.settings.mutate(request({
++        ns: 'ui-appearance',
++        ops: [{ op: 'set', path: ['config'], value: '{"wallpaper":{"url":"data:image/png;base64,AA=="}}' }],
++      })))
+     })
+-    expect(frames).toEqual([forwardedSettings('ui-onboarding'), forwardedSettings('ui-theme')])
++    expect(frames).toEqual([
++      forwardedSettings('ui-onboarding'),
++      forwardedSettings('ui-theme'),
++      forwardedSettings('ui-appearance'),
++    ])
+   })
+ 
+   it('serves the agent-preset namespace, so a browser preset picker can persist its choice', async () => {
+diff --git a/tsconfig.base.json b/tsconfig.base.json
+index 16d69db6db..5db220c5cb 100644
+--- a/tsconfig.base.json
++++ b/tsconfig.base.json
+@@ -192,6 +192,7 @@
+       "@deepseek-ai/dsh-client-ui-cordis/invariant": ["./packages/extensions/ui-cordis/src/invariant.ts"],
+       "@deepseek-ai/dsh-client-test-runtime": ["./packages/test-support/client-runtime/src"],
+       "@deepseek-ai/dsh-client-test-runtime/invariant": ["./packages/test-support/client-runtime/src/invariant.ts"],
++      "@deepseek-ai/dsh-client-ui-appearance": ["./packages/client/ui-appearance/src"],
+       "@deepseek-ai/dsh-client-ui-layout": ["./packages/client/ui-layout/src"],
+       "@deepseek-ai/dsh-client-ui-sidebar": ["./packages/client/ui-sidebar/src"],
+       "@deepseek-ai/dsh-client-ui-conversation": ["./packages/client/ui-conversation/src"],
+diff --git a/tsconfig.client.json b/tsconfig.client.json
+index e599f76f1b..6b0d8e3a36 100644
+--- a/tsconfig.client.json
++++ b/tsconfig.client.json
+@@ -62,6 +62,7 @@
+     { "path": "./packages/extensions/cordis-client-runner" },
+     { "path": "./packages/extensions/ui-cordis" },
+     { "path": "./packages/test-support/client-runtime" },
++    { "path": "./packages/client/ui-appearance" },
+     { "path": "./packages/client/ui-layout" },
+     { "path": "./packages/client/ui-sidebar" },
+     { "path": "./packages/client/ui-conversation" },

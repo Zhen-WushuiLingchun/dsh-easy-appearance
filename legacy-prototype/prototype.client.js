@@ -54,13 +54,27 @@ return {
       const L = config.colors.light
       const D = config.colors.dark
       const t = config.contrast
-      const a = config.surfaceOpacity
+      const hasWallpaper = config.wallpaper.url !== ''
+      const a = hasWallpaper ? config.surfaceOpacity : 1
       const extreme = { light: '#000000', dark: '#ffffff' }
-      if (config.dirty.accent) out['--dsw-alias-brand-primary'] = { light: L.accent, dark: D.accent }
+      if (config.dirty.accent) {
+        const accent = { light: L.accent, dark: D.accent }
+        out['--dsw-alias-brand-primary'] = accent
+        out['--dsw-alias-brand-primary-new-colorprimary-new-color'] = accent
+        out['--dsw-alias-state-business-primary'] = accent
+        out['--dsw-alias-state-business-tertiary'] = { light: hexToRgba(L.accent, 0.14), dark: hexToRgba(D.accent, 0.22) }
+        out['--dsw-alias-button-info-fill'] = accent
+        out['--dsw-alias-button-info-hover'] = { light: lerpHex(L.accent, '#ffffff', 0.18), dark: lerpHex(D.accent, '#000000', 0.12) }
+      }
       if (config.dirty.foreground || config.contrastDirty) out['--dsw-alias-label-primary'] = { light: lerpHex(L.foreground, extreme.light, t), dark: lerpHex(D.foreground, extreme.dark, t) }
       if (config.dirty.secondary || config.contrastDirty) out['--dsw-alias-label-secondary'] = { light: lerpHex(L.secondary, extreme.light, t), dark: lerpHex(D.secondary, extreme.dark, t) }
-      if (config.dirty.background || config.surfaceDirty) out['--dsw-alias-bg-base'] = { light: hexToRgba(L.background, a), dark: hexToRgba(D.background, a) }
-      if (config.dirty.sidebar || config.surfaceDirty) out['--dsw-specific-sidebar-fill'] = { light: hexToRgba(L.sidebar, a), dark: hexToRgba(D.sidebar, a) }
+      if (config.dirty.background || config.surfaceDirty || hasWallpaper) {
+        out['--dsw-alias-bg-base'] = {
+          light: hasWallpaper ? 'transparent' : L.background,
+          dark: hasWallpaper ? 'transparent' : D.background,
+        }
+      }
+      if (config.dirty.sidebar || config.surfaceDirty || hasWallpaper) out['--dsw-specific-sidebar-fill'] = { light: hexToRgba(L.sidebar, a), dark: hexToRgba(D.sidebar, a) }
       return out
     }
     function applyTokens() {
@@ -72,18 +86,20 @@ return {
 
     let disposeCss = null
     function urlOf(raw) {
-      if (raw.indexOf('data:') === 0) return 'url(' + JSON.stringify(raw) + ')'
-      return 'url("' + raw + '")'
+      return 'url(' + JSON.stringify(raw) + ')'
+    }
+    function wallpaperRule(selector, background) {
+      const tint = hexToRgba(background, config.surfaceOpacity)
+      const shade = 'rgba(0, 0, 0, ' + clamp01(config.wallpaper.scrim) + ')'
+      return selector + ' { background-color: ' + background + ' !important; background-image: linear-gradient(' + tint + ', ' + tint + '), linear-gradient(' + shade + ', ' + shade + '), ' + urlOf(config.wallpaper.url) + ' !important; background-size: cover !important; background-position: center !important; background-repeat: no-repeat !important; background-attachment: fixed !important; }'
     }
     function buildCss() {
       const parts = []
       if (config.fonts.ui) parts.push(':root { --dsw-font-family: ' + config.fonts.ui + ' !important; }')
       if (config.fonts.code) parts.push(':root { --ds-font-family-code: ' + config.fonts.code + ' !important; }')
       if (config.wallpaper.url) {
-        const s = config.wallpaper.scrim
-        parts.push('html { background-color: #000; background-image: linear-gradient(rgba(0,0,0,' + s + '), rgba(0,0,0,' + s + ')), ' + urlOf(config.wallpaper.url) + '; background-size: cover; background-position: center; background-repeat: no-repeat; background-attachment: fixed; }')
-      } else {
-        parts.push('html { background-color: transparent; background-image: none; }')
+        parts.push(wallpaperRule('body', config.colors.light.background))
+        parts.push(wallpaperRule('body[data-ds-dark-theme]', config.colors.dark.background))
       }
       if (config.customCss) parts.push(config.customCss)
       return parts.join('\n')
@@ -94,6 +110,14 @@ return {
     }
 
     function commit() { applyTokens(); applyCss() }
+
+    function setWallpaper(url) {
+      config.wallpaper.url = url
+      if (url !== '' && config.surfaceOpacity === 1) config.surfaceOpacity = 0.5
+      if (url !== '' && config.wallpaper.scrim === 0.45) config.wallpaper.scrim = 0.25
+      config.surfaceDirty = true
+      commit()
+    }
 
     const themeListeners = new Set()
     if (theme !== undefined) {
@@ -305,8 +329,7 @@ return {
         setStatus('正在读取图片…')
         host.call('dsappearance.readImage', { path: imgPath }).then((res) => {
           if (res && res.ok) {
-            config.wallpaper.url = res.dataUrl
-            commit()
+            setWallpaper(res.dataUrl)
             bump()
             setStatus('已载入背景图')
           } else {
@@ -361,7 +384,7 @@ return {
       const presetButtons = mkButtons(
         PRESETS,
         () => false,
-        (it) => { config.wallpaper.url = it.url; commit(); bump() },
+        (it) => { setWallpaper(it.url); bump() },
       )
 
       const uiFontPresets = mkButtons(
@@ -409,7 +432,7 @@ return {
         ]),
 
         Group('背景图', [
-          TextField('图片 URL', config.wallpaper.url, (v) => { config.wallpaper.url = v; commit(); bump() }, 'https://… 或 data:image/…'),
+          TextField('图片 URL', config.wallpaper.url, (v) => { setWallpaper(v); bump() }, 'https://… 或 data:image/…'),
           PathRow('图片路径', imgPath, setImgPath, readImage, '读取图片'),
           el('div', { key: 'presets', style: S.btnRow }, presetButtons),
           SliderField('遮罩层透明度', 0, 1, 0.05, config.wallpaper.scrim, (v) => { config.wallpaper.scrim = v; commit(); bump() }, (v) => Math.round(v * 100) + '%'),

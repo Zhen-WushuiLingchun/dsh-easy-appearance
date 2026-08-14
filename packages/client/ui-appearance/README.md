@@ -9,6 +9,7 @@ Appearance settings for the DeepSeek Harness WebUI. The plugin contributes an "å
 - Color overrides cover accent, foreground, secondary text, base background, and sidebar for both light and dark schemes; the active scheme continues to follow `ui-theme`'s `light`/`dark`/`system` preference.
 - One accent choice is projected across the WebUI's brand, business-state, and info-button tokens, so send controls, links, folders, selected tabs, carets, and focus accents use the configured hue instead of the stock blue. Disabled controls still use the component's normal reduced opacity.
 - A wallpaper may be an HTTP URL, a preset SVG data URL, or an uploaded image converted by `FileReader` to a data URL.
+- Embedded image data over 4 KiB remains durable but is represented by an estimated-size placeholder in the URL field, avoiding multi-megabyte controlled-input painting issues in Electron.
 - Wallpaper opacity is applied once on the document canvas. Nested application surfaces use a transparent base token while a wallpaper is active, so their backgrounds do not compound the requested opacity.
 - The VS Code importer maps selected `colors` fields into the five color overrides.
 - UI and code fonts, plus custom CSS, are applied live through a package-owned style element.
@@ -45,6 +46,6 @@ None; this package neither assembles nor sends a provider request.
 
 ## Known Limitations and Deferred Work
 
-- Inline data URLs make the settings document grow with the uploaded image; the plugin does not maintain a separate image asset store.
+- Inline data URLs make the settings document grow with the uploaded image; the plugin does not maintain a separate image asset store. The settings UI summarizes large values rather than placing the complete Base64 string in a text input.
 - The VS Code importer maps five main fields; state colors, borders, layers, and `tokenColors` are not mapped.
 - The wallpaper scrim uses one dark tint for both schemes.

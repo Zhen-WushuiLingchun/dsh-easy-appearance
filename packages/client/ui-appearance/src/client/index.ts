@@ -41,6 +41,29 @@ const PRESETS = [
   { id: 'ember', label: '暖橙', url: gradientDataUri('#f97316', '#3b0a12') },
 ]
 
+const WALLPAPER_INPUT_INLINE_LIMIT = 4096
+const WALLPAPER_INPUT_PLACEHOLDER = 'https://… 或 data:image/…'
+
+function wallpaperInputPresentation(url: string): { value: string; placeholder: string } {
+  if (!url.startsWith('data:image/') || url.length <= WALLPAPER_INPUT_INLINE_LIMIT) {
+    return { value: url, placeholder: WALLPAPER_INPUT_PLACEHOLDER }
+  }
+
+  const comma = url.indexOf(',')
+  const payloadLength = comma >= 0 ? url.length - comma - 1 : url.length
+  const estimatedBytes = url.slice(0, Math.max(comma, 0)).includes(';base64')
+    ? Math.floor(payloadLength * 3 / 4)
+    : payloadLength
+  const size = estimatedBytes >= 1024 * 1024
+    ? `${(estimatedBytes / (1024 * 1024)).toFixed(1)} MiB`
+    : `${Math.max(1, Math.round(estimatedBytes / 1024))} KiB`
+
+  return {
+    value: '',
+    placeholder: `已加载内嵌背景图（约 ${size}），输入新 URL 可替换`,
+  }
+}
+
 const TEMPLATE_CSS = [
   '/* ============================================================',
   '   dsh-appearance 自定义 CSS 模板',
@@ -362,6 +385,7 @@ export function apply(ctx: ClientContext): void {
     const colors = state.colors[scheme]
     const activeLabel = activeScheme === 'dark' ? '深色' : '浅色'
     const modeNote = (pref === 'system' ? '跟随系统' : pref === 'dark' ? '深色' : '浅色') + ' · 当前生效：' + activeLabel
+    const wallpaperInput = wallpaperInputPresentation(state.wallpaper.url)
 
     const setColor = (key: keyof AppearanceColorSet, value: string): void => {
       state.colors[scheme][key] = value
@@ -451,7 +475,7 @@ export function apply(ctx: ClientContext): void {
       ]),
 
       Group('背景图', [
-        TextField('图片 URL', state.wallpaper.url, (v) => { setWallpaper(v); bump() }, 'https://… 或 data:image/…'),
+        TextField('图片 URL', wallpaperInput.value, (v) => { setWallpaper(v); bump() }, wallpaperInput.placeholder),
         FileField('本地上传', 'image/*', onImageFile),
         el('div', { key: 'presets', style: S.btnRow }, presetButtons),
         SliderField('遮罩层透明度', 0, 1, 0.05, state.wallpaper.scrim, (v) => {

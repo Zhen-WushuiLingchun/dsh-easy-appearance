@@ -76,6 +76,27 @@ describe('ui-appearance browser apply', () => {
     expect(document.head.querySelector('[data-plugin="ui-appearance"]')).toBeNull()
   })
 
+  it('does not bind a large embedded wallpaper to the URL input', async () => {
+    const test = await bench()
+    const saved = decodeConfig(encodeConfig(DEFAULT_CONFIG))
+    saved.wallpaper.url = `data:image/jpeg;base64,${'A'.repeat(8192)}`
+    const serialized = encodeConfig(saved)
+    test.host.publish({
+      status: 'ready', writable: true, revision: 4,
+      value: { config: serialized }, user: { config: serialized },
+    })
+    renderSection(test.slots)
+
+    const input = screen.getByPlaceholderText<HTMLInputElement>(/已加载内嵌背景图/)
+    expect(input.value).toBe('')
+    expect(input.placeholder).toContain('KiB')
+    expect(document.head.querySelector('[data-plugin="ui-appearance"]')?.textContent)
+      .toContain(saved.wallpaper.url)
+    expect(test.host.set).not.toHaveBeenCalled()
+
+    await test.fiber.dispose()
+  })
+
   it('reports success only after the exact config appears in the Host user layer', async () => {
     const test = await bench()
     const initial = { config: encodeConfig(DEFAULT_CONFIG) }

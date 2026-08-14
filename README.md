@@ -69,7 +69,7 @@ DeepSeek Harness WebUI 的持久化外观插件
 | 验证日期 | 2026-08-14 |
 | 正式源码与构建产物 | `packages/client/ui-appearance/` |
 | 最小集成补丁 | `integration/deepseek-harness-0.1.0-rc.5.patch` |
-| 文件树摘要 | `82bde6c5f87a3270f6be4f62ddf154e35f57f4b6c4f780bdac43f6a502d06787` |
+| 文件树摘要 | `30fb77c44630675fb4863b58670a5aa328a57511dccb55f855a72ca4f754f5e6` |
 
 发布目录中的正式包与本机在线验证的包逐字节一致：39 个文件，摘要和来源记录见 [`integration/tested-snapshot.json`](integration/tested-snapshot.json)。
 
@@ -144,6 +144,7 @@ pnpm run build:web
 
 - 在“图片 URL”中填写 `https://...` 或 `data:image/...`；
 - 通过“本地上传”选择图片，浏览器会使用 `FileReader` 转为 data URL；
+- 较大的内嵌图片仍完整持久化，但 URL 输入框只显示估算大小，避免 Electron 把数 MB Base64 绑定到文本控件时出现绘制留白；
 - 使用“暮色紫、深海蓝、翡翠绿、暖橙”内置预设；
 - 调整遮罩透明度，在壁纸可见度和文字对比度之间取平衡。
 
@@ -237,6 +238,10 @@ GitHub Actions 会在提交和拉取请求上重复执行快照检查、补丁�
 3. 检查 `settings.yaml` 的 `ui-appearance.config` 是否仍包含 `wallpaper.url`；
 4. 强制刷新页面以加载最新 Web bundle；
 5. 若使用远程 URL，确认浏览器可以直接访问该图片。
+
+### Desktop 的背景图控件之间出现大片空白
+
+更新到包含大图输入保护的版本并重新生成插件及 Web bundle。上传图片仍保存在 `ui-appearance.config` 中，但超过 4 KiB 的 `data:image/...` 不再直接绑定到 URL 输入框；设置页会显示图片估算大小，输入新 URL 时才替换原图。
 
 ### 发送按钮、文件夹或链接仍是默认蓝色
 

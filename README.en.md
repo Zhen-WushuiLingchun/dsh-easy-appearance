@@ -69,7 +69,7 @@ Disabled controls still use each component's normal reduced-opacity rule.
 | Verification date | 2026-08-14 |
 | Formal source and bundle | `packages/client/ui-appearance/` |
 | Minimal integration patch | `integration/deepseek-harness-0.1.0-rc.5.patch` |
-| Package-tree digest | `82bde6c5f87a3270f6be4f62ddf154e35f57f4b6c4f780bdac43f6a502d06787` |
+| Package-tree digest | `30fb77c44630675fb4863b58670a5aa328a57511dccb55f855a72ca4f754f5e6` |
 
 The 39 published package files are byte-for-byte identical to the package used for live verification. See [`integration/tested-snapshot.json`](integration/tested-snapshot.json) for the recorded source and digest.
 
@@ -136,7 +136,7 @@ The minimal patch enables this row by default. After rebuilding and starting DSH
 
 ### Wallpaper
 
-Enter an `https://...` or `data:image/...` URL, upload a local image through `FileReader`, or choose the Twilight Violet, Deep Ocean, Jade, or Ember built-in gradient. Adjust the separate scrim to retain foreground readability.
+Enter an `https://...` or `data:image/...` URL, upload a local image through `FileReader`, or choose the Twilight Violet, Deep Ocean, Jade, or Ember built-in gradient. Large embedded images remain fully persisted, but the URL field shows an estimated size instead of binding several megabytes of Base64 to a text control; this avoids blank painting in Electron while preserving the wallpaper. Adjust the separate scrim to retain foreground readability.
 
 Wallpaper is painted once on the `body` canvas. While enabled, the shared base-background token becomes transparent so nested WebUI surfaces do not compound 50% opacity and obscure the image.
 
@@ -216,6 +216,10 @@ Confirm that the package, Web bundle Cordis registration/dependency, and active 
 3. Check that `ui-appearance.config` still contains `wallpaper.url` in `settings.yaml`.
 4. Hard-refresh the page to load the latest Web bundle.
 5. For a remote URL, confirm that the browser can load the image directly.
+
+### Desktop shows a large blank area between wallpaper controls
+
+Update to a build with large-image input protection, then rebuild the plugin and Web bundle. The uploaded image remains in `ui-appearance.config`, while `data:image/...` values over 4 KiB are represented by an estimated-size placeholder and are replaced only when a new URL is entered.
 
 ### Send, folder, or link controls still use the stock blue
 

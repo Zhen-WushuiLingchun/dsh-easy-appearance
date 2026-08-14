@@ -56,8 +56,24 @@ export function buildAppearanceTokens(config) {
     const contrastTarget = { light: '#000000', dark: '#ffffff' };
     const hasWallpaper = config.wallpaper.url.length > 0;
     const surfaceAlpha = hasWallpaper ? config.surfaceOpacity : 1;
+    const accent = { light: light.accent, dark: dark.accent };
+    const accentHover = {
+        light: lerpHex(light.accent, '#ffffff', 0.18),
+        dark: lerpHex(dark.accent, '#000000', 0.12),
+    };
     return {
-        '--dsw-alias-brand-primary': { light: light.accent, dark: dark.accent },
+        // Visible blue accents span three semantic token families in the WebUI.
+        // Project the user's one choice across them so links, folders, tabs,
+        // carets, and send controls cannot fall back to the stock DeepSeek blue.
+        '--dsw-alias-brand-primary': accent,
+        '--dsw-alias-brand-primary-new-colorprimary-new-color': accent,
+        '--dsw-alias-state-business-primary': accent,
+        '--dsw-alias-state-business-tertiary': {
+            light: hexToRgba(light.accent, 0.14),
+            dark: hexToRgba(dark.accent, 0.22),
+        },
+        '--dsw-alias-button-info-fill': accent,
+        '--dsw-alias-button-info-hover': accentHover,
         '--dsw-alias-label-primary': {
             light: lerpHex(light.foreground, contrastTarget.light, config.contrast),
             dark: lerpHex(dark.foreground, contrastTarget.dark, config.contrast),

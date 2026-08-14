@@ -2,7 +2,7 @@
   "package": "@deepseek-ai/dsh-client-ui-appearance",
   "version": "0.1.0-rc.5",
   "deepseekHarnessBaseCommit": "47f943859bef60e4160492346772ded9b24f765a",
-  "capturedAt": "2026-08-14T15:57:00+08:00",
+  "capturedAt": "2026-08-14T22:32:50+08:00",
   "files": 39,
-  "sha256": "82bde6c5f87a3270f6be4f62ddf154e35f57f4b6c4f780bdac43f6a502d06787"
+  "sha256": "30fb77c44630675fb4863b58670a5aa328a57511dccb55f855a72ca4f754f5e6"
 }

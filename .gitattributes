@@ -1,2 +1,2 @@
-*.patch -whitespace
+*.patch text eol=lf whitespace=-blank-at-eof,-trailing-space
 packages/client/ui-appearance/** text eol=lf

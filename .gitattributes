@@ -1,1 +1,2 @@
 *.patch -whitespace
+packages/client/ui-appearance/** text eol=lf
